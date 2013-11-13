@@ -1,38 +1,60 @@
+#12th
 require 'ruby-trade'
 
-class MyApp
+TradeAmount = 20_000
+InitialPrice = 10.0
+Distance = 2.0
+MaxDistance = 4
+MinTime = 30
+TimeVariance = 600
+
+class T1000
   include RubyTrade::Client
+  
+  def self.level1; @level1; end
 
-  # Called by the system when we connect to the exchange server
-  def self.on_connect
-    puts "sending order"
-    @buy_order = buy 100, at: 10.0    #global variable
+  def self.on_connect *args
+    puts "Connected."
+
+    setup_next_shot
   end
 
-  # Called whenever something happens on the exchange
+  def self.setup_next_shot
+    #time_gap = MinTime + rand(TimeVariance)
+    time_gap = 10
+    puts "Firing in #{time_gap} seconds..."
+
+    this = self
+    order = nil
+    EM.add_timer time_gap do
+      shift = Distance + rand(MaxDistance)
+      is_sell = rand < 0.5
+      amount = TradeAmount
+
+      base_price = this.level1 ? this.level1["last"] : InitialPrice
+      base_price = InitialPrice if base_price.nil? or base_price == 0.0
+
+      if is_sell
+        price = base_price * (1.0 - shift / 100)
+        puts "Selling #{amount} at %.2f" % price
+        order = sell amount, at: price
+      else
+        price = base_price * (1.0 + shift / 100)
+        puts "Buying #{amount} at %.2f" % price
+        order = buy amount, at: price
+      end
+
+      EM.add_timer 0.1 do
+        puts "cancelling"
+        order.cancel!
+        this.setup_next_shot
+      end
+    end
+  end
+
   def self.on_tick level1
-    puts "Cash: #{cash}"
-    puts "Stock: #{stock}"
-    puts "Bid: #{level1["bid"]}"
-    puts "Ask: #{level1["ask"]}"
-    puts "Last: #{level1["last"]}"
+    @level1 = level1
   end
-
-  # Called when an order gets filled
-  def self.on_fill order, amount, price
-    puts "Order ID #{order.id} was filled for #{amount} shares at $%.2f" % price
-  end
-
-  # Called when an order gets partially filled
-  def self.on_partial_fill order, amount, price
-    puts "Order ID #{order.id} was partially filled for #{amount} shares at $%.2f" % price
-
-    # Cancel the order
-    @buy_order.cancel!
-  end
-
 end
 
-# Connect to the server
-MyApp.connect_to "127.0.0.1", as: "Jim"
-
+T1000.connect_to "skynet.robbritton.com", as: "T-1000"
