@@ -6,7 +6,7 @@ class MyApp
   # Called by the system when we connect to the exchange server
   def self.on_connect
     puts "sending order"
-    @buy_order = buy 100, at: 10.0
+    @buy_order = buy 100, at: 10.0    #global variable
   end
 
   # Called whenever something happens on the exchange
@@ -35,3 +35,4 @@ end
 
 # Connect to the server
 MyApp.connect_to "127.0.0.1", as: "Jim"
+
